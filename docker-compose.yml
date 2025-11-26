@@ -22,6 +22,52 @@ services:
       - devnet
     labels:
       - "traefik.enable=true"
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    restart: always
+    command:
+      - "--port=5440"
+    ports:
+      - "5440:5440"
+    volumes:
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:rw"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+    networks:
+      - devnet
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "prometheus-data:/prometheus"
+    depends_on:
+      - cadvisor
+    networks:
+      - devnet
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: always
+    volumes:
+      - "./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml"
+      - "./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml"
+      - "./grafana/dcm.json:/var/lib/grafana/dashboards/dcm.json"
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - devnet
+    depends_on:
+      - prometheus
 networks:
   devnet:
     external: true
+volumes:
+  prometheus-data:
